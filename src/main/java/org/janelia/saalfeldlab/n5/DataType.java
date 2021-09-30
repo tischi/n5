@@ -52,16 +52,27 @@ public enum DataType {
 	INT64("int64", (blockSize, gridPosition, numElements) -> new LongArrayDataBlock(blockSize, gridPosition, new long[numElements])),
 	FLOAT32("float32", (blockSize, gridPosition, numElements) -> new FloatArrayDataBlock(blockSize, gridPosition, new float[numElements])),
 	FLOAT64("float64", (blockSize, gridPosition, numElements) -> new DoubleArrayDataBlock(blockSize, gridPosition, new double[numElements])),
+	UNICODE("unicode", (blockSize, gridPosition, numElements, numBytes) -> new UnicodeArrayDataBlock(blockSize, gridPosition, new String[numElements], numBytes) ),
 	OBJECT("object", (blockSize, gridPosition, numElements) -> new ByteArrayDataBlock(blockSize, gridPosition, new byte[numElements]));
 
 	private final String label;
 
+	private int numBytes;
+
 	private DataBlockFactory dataBlockFactory;
+
+	private VarLengthDataBlockFactory varLengthDataBlockFactory;
 
 	private DataType(final String label, final DataBlockFactory dataBlockFactory) {
 
 		this.label = label;
 		this.dataBlockFactory = dataBlockFactory;
+	}
+
+	private DataType(final String label, final VarLengthDataBlockFactory varLengthDataBlockFactory ) {
+
+		this.label = label;
+		this.varLengthDataBlockFactory = varLengthDataBlockFactory;
 	}
 
 	@Override
@@ -88,7 +99,14 @@ public enum DataType {
 	 */
 	public DataBlock<?> createDataBlock(final int[] blockSize, final long[] gridPosition, final int numElements) {
 
-		return dataBlockFactory.createDataBlock(blockSize, gridPosition, numElements);
+		if ( this.equals( UNICODE ) )
+		{
+			return varLengthDataBlockFactory.createDataBlock(blockSize, gridPosition, numElements, numBytes);
+		}
+		else
+		{
+			return dataBlockFactory.createDataBlock( blockSize, gridPosition, numElements );
+		}
 	}
 
 	/**
@@ -104,9 +122,21 @@ public enum DataType {
 		return dataBlockFactory.createDataBlock(blockSize, gridPosition, DataBlock.getNumElements(blockSize));
 	}
 
+	public void setNumBytes( int numBytes )
+	{
+		this.numBytes = numBytes;
+	}
+
 	private static interface DataBlockFactory {
 
 		public DataBlock<?> createDataBlock(final int[] blockSize, final long[] gridPosition, final int numElements);
+
+	}
+
+	private static interface VarLengthDataBlockFactory {
+
+		public DataBlock<?> createDataBlock(final int[] blockSize, final long[] gridPosition, final int numElements, final int numBytes);
+
 	}
 
 	static public class JsonAdapter implements JsonDeserializer<DataType>, JsonSerializer<DataType> {
