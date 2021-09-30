@@ -1,6 +1,7 @@
 package org.janelia.saalfeldlab.n5;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 public class UnicodeArrayDataBlock extends AbstractDataBlock<String[]>
 {
@@ -32,8 +33,12 @@ public class UnicodeArrayDataBlock extends AbstractDataBlock<String[]>
 
 	@Override
 	public void readData(final ByteBuffer buffer) {
-
-		buffer.asCharBuffer().get( stringArrayToCharArray( data ) );
+		for ( int i = 0; i < data.length; i++ )
+		{
+			final byte[] chars = new byte[ stringLength ];
+			buffer.get( chars );
+			data[ i ] = new String( chars, Charset.forName("UTF-8"));
+		}
 	}
 
 	@Override
